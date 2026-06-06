@@ -2165,17 +2165,27 @@ class="uri">https://www.youtube.com/watch?v=FHP7YL-5BD8</a></p>
                     line.innerHTML = node.innerHTML;
 
                     button.addEventListener('click', () => {
-                      if (button.dataset.audioSrc && button.dataset.audioSrc.includes('46ab91d2.mp3') && 'speechSynthesis' in window) {
-                        const utterance = new SpeechSynthesisUtterance(button.dataset.ttsText);
-                        utterance.lang = 'ar-EG';
-                        utterance.rate = 0.95;
-                        window.speechSynthesis.cancel();
-                        window.speechSynthesis.speak(utterance);
-                        return;
-                      }
-
                       const audio = new Audio(button.dataset.audioSrc);
-                      audio.play();
+                      let fallbackUsed = false;
+                      const speakFallback = () => {
+                        if (fallbackUsed) {
+                          return;
+                        }
+                        fallbackUsed = true;
+                        if ('speechSynthesis' in window) {
+                          const utterance = new SpeechSynthesisUtterance(button.dataset.ttsText);
+                          utterance.lang = 'ar-EG';
+                          utterance.rate = 0.95;
+                          window.speechSynthesis.cancel();
+                          window.speechSynthesis.speak(utterance);
+                        }
+                      };
+
+                      audio.addEventListener('error', speakFallback, { once: true });
+                      const playPromise = audio.play();
+                      if (playPromise && typeof playPromise.catch === 'function') {
+                        playPromise.catch(speakFallback);
+                      }
                     });
 
                     row.append(button, line);

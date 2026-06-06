@@ -431,7 +431,7 @@ dir="rtl">والأُردن من الغرب، وإيران من الشَّرق. �
 اختبار سريع <span dir="ltr">Quiz</span>
 </h3>
 <p>
-<strong>اخْتر الإجابة الصحيحة: ضع علامة في المربّع الصحيح.</strong>
+<strong>اخْتر الإجابة الصحيحة: اضغَط على المربّع لِتَظهر قائمةُ الكلمات. في النهاية يمكنك مراجعة إجاباتك باستخدام مفتاح الإجابات.</strong><br><strong>Choose the correct answer: click the box to show the list of words. At the end, you can review your answers with the answer key.</strong>
 </p>
 <ol class="digital-quiz">
 <li>
@@ -2128,17 +2128,27 @@ class="uri">https://www.youtube.com/watch?v=FHP7YL-5BD8</a></p>
                     line.innerHTML = node.innerHTML;
 
                     button.addEventListener('click', () => {
-                        if (button.dataset.audioSrc && button.dataset.audioSrc.includes('46ab91d2.mp3') && 'speechSynthesis' in window) {
-                            const utterance = new SpeechSynthesisUtterance(button.dataset.ttsText);
-                            utterance.lang = 'ar-EG';
-                            utterance.rate = 0.95;
-                            window.speechSynthesis.cancel();
-                            window.speechSynthesis.speak(utterance);
-                            return;
-                        }
-
                         const audio = new Audio(button.dataset.audioSrc);
-                        audio.play();
+                      let fallbackUsed = false;
+                      const speakFallback = () => {
+                        if (fallbackUsed) {
+                          return;
+                        }
+                        fallbackUsed = true;
+                        if ('speechSynthesis' in window) {
+                          const utterance = new SpeechSynthesisUtterance(button.dataset.ttsText);
+                          utterance.lang = 'ar-EG';
+                          utterance.rate = 0.95;
+                          window.speechSynthesis.cancel();
+                          window.speechSynthesis.speak(utterance);
+                        }
+                      };
+
+                      audio.addEventListener('error', speakFallback, { once: true });
+                      const playPromise = audio.play();
+                      if (playPromise && typeof playPromise.catch === 'function') {
+                        playPromise.catch(speakFallback);
+                      }
                     });
 
                     row.append(button, line);
